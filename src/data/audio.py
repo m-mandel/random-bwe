@@ -21,7 +21,7 @@ class Audioset:
         self.sample_rate = sample_rate
         self.channels = channels
 
-        for file, file_length in self.files:
+        for file, file_length, alpha, beta in self.files:
             if length is None:
                 examples = 1
             elif file_length < length:

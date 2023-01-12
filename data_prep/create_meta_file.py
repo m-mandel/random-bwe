@@ -8,11 +8,17 @@ from collections import namedtuple
 import json
 from multiprocessing import Process, Manager
 import pathlib
+import random
 
-FILE_PATTERN='*_mic1.wav'
-TOTAL_N_SPEAKERS=108
-TRAIN_N_SPEAKERS=100
-TEST_N_SPEAKERS=8
+SEED = 2036
+MIN_ALPHA=0.9
+MAX_ALPHA=1.0
+MIN_BETA=0.9
+MAX_BETA=1.0
+FILE_PATTERN = '*.wav'
+TOTAL_N_SPEAKERS = 108
+TRAIN_N_SPEAKERS = 100
+TEST_N_SPEAKERS = 8
 
 Info = namedtuple("Info", ["length", "sample_rate", "channels"])
 
@@ -34,7 +40,9 @@ def add_subdir_meta(subdir_path, shared_meta, n_samples_limit):
     audio_files = glob.glob(os.path.join(subdir_path, FILE_PATTERN))
     for idx, file in enumerate(audio_files):
         info = get_info(file)
-        shared_meta.append((file, info.length))
+        alpha = random.uniform(MIN_ALPHA, MAX_ALPHA)
+        beta = random.uniform(MIN_BETA, MAX_BETA)
+        shared_meta.append((file, info.length, alpha, beta))
 
 
 def create_subdirs_meta(subdirs_paths, n_samples_limit):
@@ -54,22 +62,21 @@ def create_subdirs_meta(subdirs_paths, n_samples_limit):
             meta = meta[:n_samples_limit]
         return meta
 
+
 def create_meta(data_dir, n_samples_limit=None):
-    root, subdirs, files = next(os.walk(data_dir, topdown=True))
-    subdirs.sort()
-    assert len(subdirs) == TOTAL_N_SPEAKERS
-    train_subdirs_paths = [os.path.join(root, d) for d in subdirs[:TRAIN_N_SPEAKERS]]
-    test_subdirs_paths = [os.path.join(root, d) for d in subdirs[TRAIN_N_SPEAKERS:]]
-    assert len(test_subdirs_paths) == TEST_N_SPEAKERS
-    train_meta = create_subdirs_meta(train_subdirs_paths, n_samples_limit)
-    test_meta = create_subdirs_meta(test_subdirs_paths, n_samples_limit)
+    subdirs_paths = [os.path.join(data_dir, speaker_dir, subdir) for speaker_dir in os.listdir(data_dir)
+                            for subdir in os.listdir(os.path.join(data_dir, speaker_dir))]
+    subdirs_paths.sort()
+    print(f'number of speakers: {len(os.listdir(data_dir))}')
+    print(f'total number of subdirs: {len(subdirs_paths)}')
+    meta = create_subdirs_meta(subdirs_paths, n_samples_limit)
+
+    print(f'total number of files: {len(meta)}')
 
     if n_samples_limit:
-        assert len(train_meta) == n_samples_limit
-        assert len(test_meta) == n_samples_limit
+        assert len(meta) == n_samples_limit
 
-    return train_meta, test_meta
-
+    return meta
 
 
 def parse_args():
@@ -81,27 +88,26 @@ def parse_args():
     return parser.parse_args()
 
 
-
 """
 usage: python data_prep/create_meta_file.py <data_dir_path> <target_dir> <json_filename>
 """
+
+
 def main():
     args = parse_args()
     print(args)
 
+    random.seed(SEED)
+
     os.makedirs(args.target_dir, exist_ok=True)
-    os.makedirs(os.path.join(args.target_dir, 'tr'), exist_ok=True)
-    os.makedirs(os.path.join(args.target_dir, 'val'), exist_ok=True)
 
+    meta = create_meta(args.data_dir, args.n_samples_limit)
 
-    train_meta, test_meta = create_meta(args.data_dir, args.n_samples_limit)
-
-    train_json_object = json.dumps(train_meta, indent=4)
-    test_json_object = json.dumps(test_meta, indent=4)
-    with open(os.path.join(args.target_dir, 'tr', args.json_filename + '.json'), "w") as train_out:
-        train_out.write(train_json_object)
-    with open(os.path.join(args.target_dir, 'val', args.json_filename + '.json'), "w") as test_out:
-        test_out.write(test_json_object)
+    total_data_json_object = json.dumps(meta, indent=4)
+    with open(os.path.join(args.target_dir,
+                           f'{args.json_filename}_alpha_{MIN_ALPHA}-{MAX_ALPHA}_beta_{MIN_BETA}-{MAX_BETA}.json'),
+                                                            "w") as train_out:
+        train_out.write(total_data_json_object)
 
     print(f'Done creating meta for {args.data_dir}.')
 

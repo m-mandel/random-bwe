@@ -5,11 +5,11 @@ import argparse
 from multiprocessing import Pool
 
 
-def resample_subdir(data_dir, data_subdir, out_dir, target_sr):
+def resample_subdir(data_dir, speaker_dir, data_subdir, out_dir, target_sr):
     print(f'resampling {data_subdir}')
     tfm = sox.Transformer()
     tfm.set_output_format(rate=target_sr)
-    out_sub_dir = os.path.join(out_dir, data_subdir)
+    out_sub_dir = os.path.join(out_dir, speaker_dir, data_subdir)
     if not os.path.isdir(out_sub_dir):
         os.makedirs(out_sub_dir)
     for file in os.listdir(os.path.join(data_dir, data_subdir)):
@@ -17,9 +17,11 @@ def resample_subdir(data_dir, data_subdir, out_dir, target_sr):
         in_path = os.path.join(data_dir, data_subdir, file)
         if os.path.isfile(out_path):
             print(f'{out_path} already exists.')
-        elif not file.lower().endswith('.wav'):
+        if not (file.lower().endswith('.wav') or file.lower().endswith('.flac')):
             print(f'{in_path}: invalid file type.')
         else:
+            if not file.lower().endswith('.wav'):
+                out_path = os.path.splitext(out_path)[0] + '.wav'
             success = tfm.build_file(input_filepath=in_path, output_filepath=out_path)
             if success:
                 print(f'Succesfully saved {in_path} to {out_path}')
@@ -28,7 +30,8 @@ def resample_subdir(data_dir, data_subdir, out_dir, target_sr):
 def resample_data(data_dir, out_dir, target_sr):
     with Pool() as p:
         p.starmap(resample_subdir,
-                  [(data_dir, data_subdir, out_dir, target_sr) for data_subdir in os.listdir(data_dir)])
+                  [(os.path.join(data_dir, speaker_dir), speaker_dir, data_subdir, out_dir, target_sr) for speaker_dir in os.listdir(data_dir)
+                        for data_subdir in os.listdir(os.path.join(data_dir, speaker_dir))])
 
 
 def parse_args():

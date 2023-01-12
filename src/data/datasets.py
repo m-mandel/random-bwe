@@ -79,6 +79,9 @@ class PrHrSet(Dataset):
         return lr_i, hr_i, pr_i, lr_filename
 
 
+def downsample(signal, length, alpha, beta):
+    pass #TODO: complete
+
 class LrHrSet(Dataset):
     def __init__(self, json_dir, lr_sr, hr_sr, stride=None, segment=None,
                  pad=True, with_path=False, stft=False, win_len=64, hop_len=16, n_fft=4096, complex_as_channels=True,

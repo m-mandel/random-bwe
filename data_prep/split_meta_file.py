@@ -33,7 +33,7 @@ def split_json_file(json_path, n_train_samples, n_test_samples):
     print(f'train speakers: {train_speakers}')
     print(f'test speakers: {test_speakers}')
 
-    return train_data, test_data
+    return train_data, test_data, train_speakers, test_speakers
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Split meta file.')
@@ -59,14 +59,18 @@ def main():
     os.makedirs(os.path.join(target_dir, 'val'), exist_ok=True)
 
 
-    train_meta, test_meta = split_json_file(args.json_filename_path, args.n_train_samples_limit, args.n_test_samples_limit)
+    train_meta, test_meta, train_speakers, test_speakers = split_json_file(args.json_filename_path, args.n_train_samples_limit, args.n_test_samples_limit)
 
     train_json_object = json.dumps(train_meta, indent=4)
     test_json_object = json.dumps(test_meta, indent=4)
-    with open(os.path.join(target_dir, 'tr', json_name + '.json'), "w") as train_out:
+    with open(os.path.join(target_dir, 'tr', 'hr.json'), "w") as train_out:
         train_out.write(train_json_object)
-    with open(os.path.join(target_dir, 'val', json_name + '.json'), "w") as test_out:
+    with open(os.path.join(target_dir, 'val', 'hr.json'), "w") as test_out:
         test_out.write(test_json_object)
+
+    with open(os.path.join(target_dir, 'speakers.log'), "a") as speakers_log:
+        speakers_log.write(f'train speakers: {train_speakers}\n')
+        speakers_log.write(f'test speakers: {test_speakers}')
 
 
 if __name__ == '__main__':

@@ -13,43 +13,44 @@ def sinc(x: torch.Tensor):
    return torch.where(x == 0, torch.tensor(1., device=x.device, dtype=x.dtype), torch.sin(x) / x)
 
 
-# this is used for filtering in the frequency domain.
-def _compl_mul_conjugate(a: torch.Tensor, b: torch.Tensor):
+def compute_cutoff_t(cutoff, alpha, beta, t, fs=8000):
     """
-    Given a and b two tensors of dimension 4
-    with the last dimension being the real and imaginary part,
-    returns a multiplied by the conjugate of b, the multiplication
-    being with respect to the second dimension.
-    """
-    # PyTorch 1.7 supports complex number, but not for all operations.
-    # Once the support is widespread, this can likely go away.
 
-    op = "bcft,dct->bdft"
-    return torch.stack([
-        torch.einsum(op, a[..., 0], b[..., 0]) + torch.einsum(op, a[..., 1], b[..., 1]),
-        torch.einsum(op, a[..., 1], b[..., 0]) - torch.einsum(op, a[..., 0], b[..., 1])
-    ],
-                       dim=-1)
+    """
+    return (math.pi / cutoff + alpha * math.sin(beta * t)) * fs / 2 * math.pi
+
+
+def filter_t(cutoff, alpha, beta, t, fs=8000, filter_len=8):
+    half_size = int(filter_len / 2)
+    cutoff = compute_cutoff_t(cutoff, alpha, beta, t, fs)
+    window = torch.hann_window(2 * half_size + 1, periodic=False)
+    time = torch.arange(-half_size, half_size + 1)
+    filter = 2 * cutoff * window * sinc(2 * cutoff * math.pi * time)
+    # Normalize filter to have sum = 1, otherwise we will have a small leakage
+    # of the constant component in the input signal.
+    filter /= filter.sum()
+
+    return filter
+
+def compute_conv_mat(n, cutoff, alpha, beta, fs=8000, filter_len=8):
+    half_size = int(filter_len / 2)
+    mat = filter_len((n + half_size, n + half_size))
+    for t in range(mat.shape[0]):
+        mat[t,t:t + filter_len] = torch.flip(filter_t(cutoff, alpha, beta, t, fs, filter_len), [0])
+    return mat[:, half_size:-half_size]
+
+
 
 class LowPassFilter(torch.nn.Module):
 
-    def __init__(self, cutoff, stride: int = 1, pad: bool = True, zeros: float = 8):
+    def __init__(self, cutoff, fs: float = 8000, filter_len: float = 8):
         super().__init__()
         self.cutoff = cutoff
-        self.stride = stride
-        self.pad = pad
-        self.zeros = zeros
-        self.half_size = int(zeros / min([c for c in self.cutoffs if c > 0]) / 2)
-        window = torch.hann_window(2 * self.half_size + 1, periodic=False)
-        time = torch.arange(-self.half_size, self.half_size + 1)
+        self.fs = fs
+        self.filter_len = filter_len
 
-        self.filter = 2 * cutoff * window * sinc(2 * cutoff * math.pi * time)
-        # Normalize filter to have sum = 1, otherwise we will have a small leakage
-        # of the constant component in the input signal.
-        self.filter /= self.filter.sum()
-
-    def forward(self, input):
-        if self.pad:
-            input = F.pad(input, (self.half_size, self.half_size), mode='replicate')
-        out = F.conv1d(input, self.filter, stride=self.stride)
-        return out
+    def forward(self, input, alpha, beta):
+        n = len(input)
+        conv_mat = compute_conv_mat(n, self.cutoff, alpha, beta, self.fs, self.filter_len)
+        output = torch.matmul(conv_mat, input)
+        return output

@@ -131,7 +131,7 @@ class LrHrSet(Dataset):
 
         match_files(lr, hr)
         self.lr_set = Audioset(lr, sample_rate=lr_sr, length=lr_length, stride=lr_stride, pad=pad, channels=1,
-                               with_path=with_path)
+                               with_path=with_path, is_meta_full=False)
         self.hr_set = Audioset(hr, sample_rate=hr_sr, length=hr_length, stride=hr_stride, pad=pad, channels=1,
                                with_path=with_path)
         assert len(self.hr_set) == len(self.lr_set)

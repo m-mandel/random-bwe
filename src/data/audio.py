@@ -5,11 +5,13 @@ import math
 import torchaudio
 from torch.nn import functional as F
 
+from transforms import AddGaussianNoise
+
 
 class Audioset:
     def __init__(self, files=None, length=None, stride=None,
                  pad=True, with_path=False, sample_rate=None,
-                 channels=None):
+                 channels=None, is_meta_full=True):
         """
         files should be a list [(file, length)]
         """
@@ -21,7 +23,13 @@ class Audioset:
         self.sample_rate = sample_rate
         self.channels = channels
 
-        for file, file_length, alpha, beta in self.files:
+        self.transform = AddGaussianNoise()
+
+        for meta in self.files:
+            if is_meta_full:
+                file, file_length, alpha, beta = meta
+            else:
+                file, file_length = meta
             if length is None:
                 examples = 1
             elif file_length < length:
@@ -36,7 +44,8 @@ class Audioset:
         return sum(self.num_examples)
 
     def __getitem__(self, index):
-        for (file, _), examples in zip(self.files, self.num_examples):
+        for meta, examples in zip(self.files, self.num_examples):
+            file = meta[0]
             if index >= examples:
                 index -= examples
                 continue
@@ -61,6 +70,10 @@ class Audioset:
                                    f"{self.channels}, but got {out.shape[0]}")
             if num_frames:
                 out = F.pad(out, (0, num_frames - out.shape[-1]))
+
+            if self.transform:
+                out = self.transform(out)
+
             if self.with_path:
                 return out, file
             else:

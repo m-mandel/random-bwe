@@ -33,24 +33,31 @@ def get_info(path):
         return Info(siginfo.length // siginfo.channels, siginfo.rate, siginfo.channels)
 
 
-def add_subdir_meta(subdir_path, shared_meta, n_samples_limit):
+def add_subdir_meta(subdir_path, shared_meta, n_samples_limit, append_random_data):
     if n_samples_limit and len(shared_meta) > n_samples_limit:
         return
     print(f'creating meta for {subdir_path}')
     audio_files = glob.glob(os.path.join(subdir_path, FILE_PATTERN))
     for idx, file in enumerate(audio_files):
         info = get_info(file)
-        alpha = random.uniform(MIN_ALPHA, MAX_ALPHA)
-        beta = random.uniform(MIN_BETA, MAX_BETA)
-        shared_meta.append((file, info.length, alpha, beta))
+
+        if append_random_data:
+            alpha = random.uniform(MIN_ALPHA, MAX_ALPHA)
+            beta = random.uniform(MIN_BETA, MAX_BETA)
+            data = (file, info.length, alpha, beta)
+        else:
+            data = (file, info.length)
+
+        shared_meta.append(data)
 
 
-def create_subdirs_meta(subdirs_paths, n_samples_limit):
+
+def create_subdirs_meta(subdirs_paths, n_samples_limit, append_random_data):
     with Manager() as manager:
         shared_meta = manager.list()
         processes = []
         for subdir_path in subdirs_paths:
-            p = Process(target=add_subdir_meta, args=(subdir_path, shared_meta, n_samples_limit))
+            p = Process(target=add_subdir_meta, args=(subdir_path, shared_meta, n_samples_limit, append_random_data))
             p.start()
             processes.append(p)
         for p in processes:
@@ -63,13 +70,13 @@ def create_subdirs_meta(subdirs_paths, n_samples_limit):
         return meta
 
 
-def create_meta(data_dir, n_samples_limit=None):
+def create_meta(data_dir, n_samples_limit=None, append_random_data=True):
     subdirs_paths = [os.path.join(data_dir, speaker_dir, subdir) for speaker_dir in os.listdir(data_dir)
                             for subdir in os.listdir(os.path.join(data_dir, speaker_dir))]
     subdirs_paths.sort()
     print(f'number of speakers: {len(os.listdir(data_dir))}')
     print(f'total number of subdirs: {len(subdirs_paths)}')
-    meta = create_subdirs_meta(subdirs_paths, n_samples_limit)
+    meta = create_subdirs_meta(subdirs_paths, n_samples_limit, append_random_data)
 
     print(f'total number of files: {len(meta)}')
 

@@ -1,0 +1,5 @@
+# @package dset
+name: 4-8-dummy
+train: src/egs/dummy/tr
+valid: src/egs/dummy/val
+test: src/egs/dummy/val

@@ -7,7 +7,7 @@ from torch import nn
 from torch.nn import functional as F
 
 from src.models.utils import capture_init
-from src.models.spec import spectro, ispectro
+from src.models.spec import spectro, ispectro, cutoff
 from src.models.modules import DConv, ScaledEmbedding, FTB
 
 import logging
@@ -265,6 +265,8 @@ class Aero(nn.Module):
                  hr_sr=16000,
                  spec_upsample=True,
                  act_func='snake',
+                 condition_on_cutoff=False,
+                 cutoff_form=None, #None/one-hot/embed
                  debug=False):
         """
         Args:
@@ -330,6 +332,8 @@ class Aero(nn.Module):
         self.freq_emb = None
         self.hybrid = hybrid
         self.hybrid_old = hybrid_old
+        self.condition_on_cutoff = condition_on_cutoff
+        self.cutoff_form = cutoff_form
         self.debug = debug
 
         self.encoder = nn.ModuleList()
@@ -338,8 +342,13 @@ class Aero(nn.Module):
         chin_z = self.in_channels
         if self.cac:
             chin_z *= 2
+        if self.condition_on_cutoff:
+            chin_z += 1
         chout_z = channels
         freqs = nfft // 2
+
+        if self.cutoff_form == 'embed':
+            self.cutoff_embedding_dict = torch.nn.Embedding(self.nfft//2, self.nfft//2)
 
         for index in range(self.depth):
             freq_attn = index >= enc_freq_attn
@@ -451,7 +460,19 @@ class Aero(nn.Module):
             logger.info(f'hdemucs in shape: {x.shape}')
 
         z = self._spec(x)
+
+        if self.condition_on_cutoff:
+            if self.cutoff_form == 'embed':
+                masks = cutoff(z.abs(), embedding_dict=self.cutoff_embedding_dict)
+            else:
+                masks = cutoff(z.abs())
+
         x = self._move_complex_to_channels_dim(z)
+
+        if self.condition_on_cutoff:
+            x = torch.cat((x,masks), dim=1)
+
+
 
         if self.debug:
             logger.info(f'x spec shape: {x.shape}')

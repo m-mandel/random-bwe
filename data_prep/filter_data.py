@@ -72,6 +72,7 @@ def parse_args():
     parser.add_argument('--out_dir', help='directory to write target files')
     parser.add_argument('--cutoff_ratio', type=int, help='target sample rate')
     parser.add_argument('--constant_cutoff', action='store_true', help='target sample rate')
+    parser.add_argument('--add_noise', action='store_true', help='add noise before filtering')
     return parser.parse_args()
 
 def main():
@@ -145,10 +146,6 @@ def main():
 
     time_diff = datetime.now() - total_start_time
     print(f'Done. Total time: {format_time_diff(time_diff)}')
-
-
-
-
 
 
 if __name__ == '__main__':

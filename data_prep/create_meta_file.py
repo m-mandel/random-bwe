@@ -88,9 +88,9 @@ def create_meta(data_dir, n_samples_limit=None, append_random_data=True):
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Resample data.')
-    parser.add_argument('data_dir', help='directory containing source files')
-    parser.add_argument('target_dir', help='output directory for created json files')
-    parser.add_argument('json_filename', help='filename for created json files')
+    parser.add_argument('--data_dir', help='directory containing source files')
+    parser.add_argument('--target_dir', help='output directory for created json files')
+    parser.add_argument('--json_filename', help='filename for created json files')
     parser.add_argument('--n_samples_limit', type=int, help='limit number of files')
     return parser.parse_args()
 

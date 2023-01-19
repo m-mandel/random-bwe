@@ -1,0 +1,5 @@
+# @package dset
+name: 4-8-const-noisy
+train: src/egs/total_noisy_alpha_0.9-1.0_beta_0.9-1.0_1800_200/tr-const
+valid: src/egs/total_noisy_alpha_0.9-1.0_beta_0.9-1.0_1800_200/val
+test: src/egs/total_noisy_alpha_0.9-1.0_beta_0.9-1.0_1800_200/val

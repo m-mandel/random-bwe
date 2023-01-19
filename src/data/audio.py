@@ -5,7 +5,6 @@ import math
 import torchaudio
 from torch.nn import functional as F
 
-from transforms import AddGaussianNoise
 
 
 class Audioset:
@@ -22,8 +21,6 @@ class Audioset:
         self.with_path = with_path
         self.sample_rate = sample_rate
         self.channels = channels
-
-        self.transform = AddGaussianNoise()
 
         for meta in self.files:
             if is_meta_full:
@@ -70,10 +67,6 @@ class Audioset:
                                    f"{self.channels}, but got {out.shape[0]}")
             if num_frames:
                 out = F.pad(out, (0, num_frames - out.shape[-1]))
-
-            if self.transform:
-                out = self.transform(out)
-
             if self.with_path:
                 return out, file
             else:

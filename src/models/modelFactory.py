@@ -16,14 +16,18 @@ def get_model(args):
             discriminator = Discriminator(**args.experiment.melgan_discriminator)
             models.update({'msd_melgan': discriminator})
         if 'msd_hifi' in args.experiment.discriminator_models:
-            msd = MultiScaleDiscriminator(**args.experiment.msd)
+            msd = MultiScaleDiscriminator(**args.experiment.msd) if 'msd' in args.experiment \
+                                                                        else MultiScaleDiscriminator()
             models.update({'msd': msd})
         if 'mpd' in args.experiment.discriminator_models:
-            mpd = MultiPeriodDiscriminator(**args.experiment.mpd)
+            mpd = MultiPeriodDiscriminator(**args.experiment.mpd) if 'mpd' in args.experiment \
+                                                                        else MultiPeriodDiscriminator()
             models.update({'mpd': mpd})
         if 'hifi' in args.experiment.discriminator_models:
-            mpd = MultiPeriodDiscriminator(**args.experiment.mpd)
-            msd = MultiScaleDiscriminator(**args.experiment.msd)
+            mpd = MultiPeriodDiscriminator(**args.experiment.mpd) if 'mpd' in args.experiment \
+                                                                        else MultiPeriodDiscriminator()
+            msd = MultiScaleDiscriminator(**args.experiment.msd) if 'msd' in args.experiment \
+                                                                        else MultiScaleDiscriminator()
             models.update({'mpd': mpd, 'msd': msd})
 
     return models

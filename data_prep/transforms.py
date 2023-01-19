@@ -13,7 +13,7 @@ class AddGaussianNoise(object):
         noise_rms = noise.norm(p=2)
         scale = self.snr * noise_rms / speech_rms
 
-        return (scale * tensor + noise) / 2
+        return (tensor + noise/scale) / 2
 
     def __repr__(self):
         return self.__class__.__name__ + '(mean={0}, std={1}, snr_db={2})'.format(self.mean, self.std, self.snr_db)

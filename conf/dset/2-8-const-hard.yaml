@@ -1,0 +1,5 @@
+# @package dset
+name: 2-8-hard
+train: src/egs/2-8-hard/tr-const
+valid: src/egs/2-8-hard/val
+test: src/egs/2-8-hard/val

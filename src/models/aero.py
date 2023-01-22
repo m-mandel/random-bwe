@@ -350,6 +350,7 @@ class Aero(nn.Module):
         if self.cutoff_form == 'embed':
             self.cutoff_embedding_dict = torch.nn.Embedding(self.nfft//2, self.nfft//2)
 
+
         for index in range(self.depth):
             freq_attn = index >= enc_freq_attn
             lstm = index >= dconv_lstm
@@ -465,14 +466,12 @@ class Aero(nn.Module):
             if self.cutoff_form == 'embed':
                 masks = cutoff(z.abs(), embedding_dict=self.cutoff_embedding_dict)
             else:
-                masks = cutoff(z.abs())
+                masks = cutoff(z.abs(), mask=self.cutoff_form == 'mask')
 
         x = self._move_complex_to_channels_dim(z)
 
         if self.condition_on_cutoff:
             x = torch.cat((x,masks), dim=1)
-
-
 
         if self.debug:
             logger.info(f'x spec shape: {x.shape}')

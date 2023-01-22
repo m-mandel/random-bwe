@@ -43,6 +43,12 @@ cross_valid_every: 5
 joint_evaluate_and_enhance: True
 evaluate_on_best: False
 
+# augmentation params
+remix:
+bandmask:
+shift:
+revecho:
+
 #wand_b
 wandb:
   project_name: 'Spectral Bandwidth Extension'

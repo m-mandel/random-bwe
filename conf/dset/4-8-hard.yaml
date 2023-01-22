@@ -1,5 +1,5 @@
 # @package dset
-name: 4-8
-train: src/egs/total_alpha_0.9-1.0_beta_0.9-1.0_1800_200/tr
-valid: src/egs/total_alpha_0.9-1.0_beta_0.9-1.0_1800_200/val
-test: src/egs/total_alpha_0.9-1.0_beta_0.9-1.0_1800_200/val
+name: 4-8-hard
+train: src/egs/alpha_0.5-1.0_beta_0.5-1.0_1800_200/tr
+valid: src/egs/alpha_0.5-1.0_beta_0.5-1.0_1800_200/val
+test: src/egs/alpha_0.5-1.0_beta_0.5-1.0_1800_200/val

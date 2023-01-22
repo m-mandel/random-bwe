@@ -9,10 +9,56 @@ from torch.fft import fftfreq
 import torch.nn.functional as F
 import torch as th
 
+from PIL import Image
+import numpy as np
+import cv2
+import os
+
+
+def scale_minmax(X, min=0.0, max=1.0):
+    isnan = np.isnan(X).any()
+    isinf = np.isinf(X).any()
+    if isinf:
+        X[X == np.inf] = 1e9
+        X[X == -np.inf] = 1e-9
+    if isnan:
+        X[X == np.nan] = 1e-9
+    # logger.info(f'isnan: {isnan}, isinf: {isinf}, max: {X.max()}, min: {X.min()}')
+
+    X_std = (X - X.min()) / (X.max() - X.min())
+    X_scaled = X_std * (max - min) + min
+    return X_scaled
+
+def convert_spectrogram_to_heatmap(spectrogram):
+    spectrogram += 1e-9
+    spectrogram = scale_minmax(spectrogram, 0, 255).astype(np.uint8).squeeze()
+    spectrogram = np.flip(spectrogram, axis=0)
+    spectrogram = 255 - spectrogram
+    # spectrogram = (255 * (spectrogram - np.min(spectrogram)) / np.ptp(spectrogram)).astype(np.uint8).squeeze()[::-1,:]
+    heatmap = cv2.applyColorMap(spectrogram, cv2.COLORMAP_INFERNO)
+    heatmap = cv2.cvtColor(heatmap, cv2.COLOR_BGR2RGB)
+    return heatmap
+
+def save_spec_and_mask(spec, mask, dir_path='/cs/labs/adiyoss/moshemandel/random-bwe/tmp'):
+    *other, fr, frames = spec.shape
+
+    spec = spec.cpu().abs().pow(2).log2()[0, :, :].numpy()
+    spec = convert_spectrogram_to_heatmap(spec)
+    spec_img = Image.fromarray(spec)
+    spec_path = os.path.join(dir_path, 'spec.jpg')
+    spec_img.save(spec_path)
+
+    mask = mask.cpu().numpy().squeeze()
+    mask_3d = np.repeat(mask[:, :, np.newaxis], 3, axis=2).astype(np.uint8)
+    mask_3d = np.where(mask_3d == 0, 255, 0).astype(np.uint8)
+    mask_img = Image.fromarray(mask_3d)
+    mask_path = os.path.join(dir_path,'mask.jpg')
+    mask_img.save(mask_path)
+
+
 
 def cutoff(S, roll_percent=0.98, sr=8000, n_fft=512, embedding_dict=None, mask=False):
-
-    n_freqs = S.shape[-2]
+    *other, n_freqs, n_frames = S.shape
     device = S.get_device()
 
     # Compute the center frequencies of each bin
@@ -43,11 +89,13 @@ def cutoff(S, roll_percent=0.98, sr=8000, n_fft=512, embedding_dict=None, mask=F
         output = embedding_dict(rolloff.indices.squeeze(dim=1)).permute(0,1,3,2)
     elif mask:
         m = th.arange(n_freqs).reshape(1, 1, -1, 1).to(device)
-        m = m.expand_as(S)
+        m = m.repeat(1,1,1,n_frames)
         indices = rolloff.indices.to(device)
-        output = th.where(m < indices, 1, 0)
+        output = th.where(m < indices, 1, 0).flip(-2)
     else:
         output = F.one_hot(rolloff.indices.squeeze(dim=1), num_classes=n_freqs).transpose(-1, -2).flip(-2)
+
+    # save_spec_and_mask(S[0,:,:,:], output[0, :, :, :])
 
     return output
 

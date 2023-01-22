@@ -14,6 +14,7 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader
 import torchaudio.transforms
 
+from src import augment
 from src.ddp import distrib
 from src.data.datasets import PrHrSet, match_signal
 from src.enhance import enhance, save_wavs, save_specs
@@ -57,6 +58,19 @@ class Solver(object):
         self.optimizer = optimizers['optimizer']
         if self.adversarial_mode:
             self.disc_optimizers = {'disc_optimizer': optimizers['disc_optimizer']}
+
+        # data augment
+        augments = []
+        if args.remix:
+            augments.append(augment.Remix())
+        if args.bandmask:
+            augments.append(augment.BandMask(args.bandmask, sample_rate=self.args.experiment.lr_sr))
+        if args.shift:
+            augments.append(augment.Shift(args.shift, args.shift_same))
+        if args.revecho:
+            augments.append(
+                augment.RevEcho(args.revecho))
+        self.augment = torch.nn.Sequential(*augments)
 
 
         # Training config
@@ -291,6 +305,9 @@ class Solver(object):
 
         for i, data in enumerate(logprog):
             lr, hr = [x.to(self.device) for x in data]
+
+            if self.augment:
+                lr = self.augment(lr)
 
             if return_spec:
                 pr_time, pr_spec = self.dmodel(lr, return_spec=return_spec)

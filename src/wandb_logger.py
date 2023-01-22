@@ -13,6 +13,7 @@ from src.utils import convert_spectrogram_to_heatmap
 logger = logging.getLogger(__name__)
 
 SPECTOGRAM_EPSILON = 1e-13
+FIRST_LOG = 25
 
 
 def _get_wandb_config(args):
@@ -71,7 +72,7 @@ def log_data_to_wandb(pr_signal, hr_signal, lr_signal, lsd, visqol, filename, ep
         enhanced_pr_spectrogram_wandb_image = wandb.Image(pr_spec, caption='PR spec')
         wandb_dict.update({f'test samples/{filename}/pr_spec': enhanced_pr_spectrogram_wandb_image})
 
-        if epoch <= 10:
+        if epoch <= FIRST_LOG:
             if not isinstance(hr_spec, PIL.Image.Image):
                 hr_spec = hr_spec.abs().pow(2).log2()[0, :, :].numpy()
                 hr_spec = convert_spectrogram_to_heatmap(hr_spec)
@@ -84,7 +85,7 @@ def log_data_to_wandb(pr_signal, hr_signal, lr_signal, lsd, visqol, filename, ep
             enhanced_lr_spectrogram_wandb_image = wandb.Image(lr_spec, caption='LR spec')
             wandb_dict.update({f'test samples/{filename}/lr_spec': enhanced_lr_spectrogram_wandb_image})
 
-    if epoch <= 10:
+    if epoch <= FIRST_LOG:
         hr_name = f'{filename}_hr'
         hr_enhanced_spectrogram = spectrogram_transform(hr_signal).log2()[0, :, :].numpy()
         hr_enhanced_spectrogram_wandb_image = wandb.Image(convert_spectrogram_to_heatmap(hr_enhanced_spectrogram),

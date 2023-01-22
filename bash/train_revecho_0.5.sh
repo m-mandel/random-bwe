@@ -5,7 +5,7 @@
 python train.py \
   dset=4-8 \
   experiment=aero_4-8_512_256 \
-  bandmask=0.4 \
-  'experiment.name=aero-bandmask-0.4-nfft-512-hl-256' \
+  revecho=0.5 \
+  'experiment.name=aero-revecho-0.5-nfft-512-hl-256' \
 
 

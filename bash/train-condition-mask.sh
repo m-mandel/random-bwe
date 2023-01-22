@@ -6,5 +6,6 @@ python train.py \
   dset=4-8 \
   experiment=aero_4-8_512_256 \
   experiment.aero.condition_on_cutoff=true \
-  'experiment.name=aero-condition-one-hot-nfft-512-hl-256' \
+  experiment.aero.cutoff_form=mask \
+  'experiment.name=aero-condition-mask-nfft-512-hl-256' \
 
